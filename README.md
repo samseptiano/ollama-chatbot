@@ -48,6 +48,5 @@ pip install ollama requests
 ```sh
 python chatbot.py
 ```
-
-<img width="1500" height="500" alt="Screenshot 2026-04-09 131211" src="https://github.com/user-attachments/assets/d66aa9c8-5e97-42e8-9a10-bd3fb1cebb4c" />
+<img width="1500" height="500" alt="Screenshot 2026-04-09 140009" src="https://github.com/user-attachments/assets/f8050fa0-dca0-4f99-b76b-c6a7d0ed7cb5" />
 
