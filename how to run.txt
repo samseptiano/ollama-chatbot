@@ -1,0 +1,48 @@
+Ollama Chatbot with ChromaDB (Local)
+
+✅ Preparation
+Make sure you already install:
+
+Python 3.10 or newer
+Git (optional)
+
+
+✅ Step 1: Install Ollama
+Windows:
+
+Open browser → click https://ollama.com/download
+
+Download Ollama Setup and install like usual app.
+
+Linux / Mac:
+
+  curl -fsSL https://ollama.com/install.sh | sh
+
+after installed, run this command to pull necessary model:
+
+  ollama pull qwen2.5:7b
+
+  ollama pull mxbai-embed-large
+
+✅ Step 2: Make Project Folder
+
+  mkdir ollama-chatbot
+
+  cd ollama-chatbot
+
+✅ Step 3: Install All Python Library
+
+  pip install fastapi uvicorn chromadb langchain langchain-community langchain-ollama requests
+
+✅ Step 4: Created Necessary Files
+
+✅ Step 5: Run Chatbot
+Open Terminal / Command Prompt in project's folder, then run this command one by one:
+
+# 1. Run Ollama server (keep it running)
+
+  ollama serve
+
+# 2. Open new Terminal, go to project's folder, then run API
+
+  python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000

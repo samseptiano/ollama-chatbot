@@ -1,55 +1,84 @@
-# knowledge.py
-import json
-import os
+# knowledge.py - Menggunakan ChromaDB
+import uuid
 from datetime import datetime
 from typing import List, Dict, Optional
-import uuid
 
-KNOWLEDGE_FILE = "knowledge.json"
+from langchain_community.vectorstores import Chroma
+from langchain_ollama import OllamaEmbeddings
 
-def load_knowledge() -> List[Dict]:
-    if not os.path.exists(KNOWLEDGE_FILE):
-        return []
-    try:
-        with open(KNOWLEDGE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return []
+# ====================== KONFIGURASI ======================
+CHROMA_PERSIST_DIR = "./chroma_chat_db"
+EMBEDDING_MODEL = "mxbai-embed-large"        # Model terbaik saat ini
 
+# Inisialisasi embeddings
+embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
 
-def save_knowledge(data: List[Dict]):
-    try:
-        with open(KNOWLEDGE_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Error saving knowledge.json: {e}")
+vectorstore = Chroma(
+    persist_directory=CHROMA_PERSIST_DIR,
+    embedding_function=embeddings,
+    collection_name="chat_history"
+)
 
 
 def add_to_knowledge(session_id: str, role: str, content: str, tool_name: Optional[str] = None):
-    history = load_knowledge()
+    """Tambahkan pesan ke ChromaDB"""
+    text = f"[{role.upper()}] {content}"
 
-    entry = {
-        "timestamp": datetime.now().isoformat(),
+    metadata = {
         "session_id": session_id,
         "role": role,
-        "content": content
+        "timestamp": datetime.now().isoformat(),
     }
     if tool_name:
-        entry["tool_name"] = tool_name
+        metadata["tool_name"] = tool_name
 
-    history.append(entry)
-
-    if len(history) > 1000:
-        history = history[-700:]
-
-    save_knowledge(history)
+    vectorstore.add_texts(
+        texts=[text],
+        metadatas=[metadata],
+        ids=[str(uuid.uuid4())]
+    )
 
 
 def get_history(session_id: str, limit: int = 15) -> List[Dict]:
-    history = load_knowledge()
-    filtered = [msg for msg in history if msg.get("session_id") == session_id]
-    return filtered[-limit:]
+    """Ambil history percakapan berdasarkan session_id"""
+    try:
+        results = vectorstore.similarity_search(
+            query="previous conversation context",
+            k=limit,
+            filter={"session_id": session_id}
+        )
+
+        history = []
+        for doc in results:
+            content = doc.page_content
+            # Bersihkan prefix [ROLE]
+            for prefix in ["[USER] ", "[ASSISTANT] ", "[TOOL] "]:
+                if content.startswith(prefix):
+                    content = content[len(prefix):]
+                    break
+
+            history.append({
+                "role": doc.metadata.get("role", "assistant"),
+                "content": content,
+                "tool_name": doc.metadata.get("tool_name")
+            })
+
+        return history
+
+    except Exception as e:
+        print(f"Error retrieving history from ChromaDB: {e}")
+        return []
 
 
 def generate_session_id() -> str:
     return str(uuid.uuid4())
+
+
+def get_collection_info():
+    """Melihat jumlah dokumen di database"""
+    try:
+        count = vectorstore._collection.count()
+        print(f"Total documents in ChromaDB: {count}")
+        return count
+    except:
+        return 0
